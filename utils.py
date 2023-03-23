@@ -30,29 +30,29 @@ def get_initial_doc(topic, subtopics):
 
 
 def data_set_creation():
-    with open("..\content_modification_dataset\documents.trectext", "r", encoding="utf8") as f:
+    with open(".\content_modification_dataset\documents.trectext", "r", encoding="utf8") as f:
         xml = f.read().replace("&", "&amp;")
     xml = fr"<root>{xml}</root>"
     doc_df = pd.read_xml(xml).astype(str)
 
     qrel_df = \
-        pd.read_csv("..\content_modification_dataset\documents.quality", header=None, delimiter=r"\s+").astype(
+        pd.read_csv(".\content_modification_dataset\documents.quality", header=None, delimiter=r"\s+").astype(
             str).rename(
             {2: "DOCNO", 3: "QREL"}, axis=1).replace(
             {'EPOCH': 'ROUND'}, regex=True)[["DOCNO", "QREL"]]
 
     ksrels_df = \
-        pd.read_csv("..\content_modification_dataset\documents.relevance", header=None, delimiter=r"\s+").astype(
+        pd.read_csv(".\content_modification_dataset\documents.relevance", header=None, delimiter=r"\s+").astype(
             str).rename({2: "DOCNO", 3: "KSREL"}, axis=1)[
             ["DOCNO", "KSREL"]]
 
-    query_df = pd.read_csv("..\content_modification_dataset\queries.txt", header=None, delimiter=r":").astype(
+    query_df = pd.read_csv(".\content_modification_dataset\queries.txt", header=None, delimiter=r":").astype(
         str).rename(
         {0: "query_id", 1: "query"},
         axis=1)
 
     pos_df = \
-        pd.read_csv("..\content_modification_dataset\documents.positions", header=None, delimiter=r"\s+").astype(
+        pd.read_csv(".\content_modification_dataset\documents.positions", header=None, delimiter=r"\s+").astype(
             str).rename(
             {2: "DOCNO", 3: "POS"}, axis=1)[["DOCNO", "POS"]]
 
