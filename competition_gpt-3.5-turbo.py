@@ -4,6 +4,7 @@ import tiktoken
 
 encoder = tiktoken.encoding_for_model(config.model)
 
+
 def get_messages(idx: int, epoch=None, bot_type="all", markov=False):
     """
     craft prompt messages list for the bot according to its type
@@ -58,7 +59,8 @@ def get_messages(idx: int, epoch=None, bot_type="all", markov=False):
                 txt_rnk = "".join(txt_rnk_lst)
 
                 messages.append(
-                    {"role": "system", "content": f"The documents of your opponents in this epoch are as follows:\n {txt_rnk}"})
+                    {"role": "system",
+                     "content": f"The documents of your opponents in this epoch are as follows:\n {txt_rnk}"})
             elif bot_type == "tops":
                 top_data = epoch_data[epoch_data.POS == 1].reset_index()
                 messages.append(
@@ -72,18 +74,14 @@ def get_messages(idx: int, epoch=None, bot_type="all", markov=False):
     return messages
 
 
-def get_comp_text(idx, epoch=None):
-    """
-    creates the initial documents for the information retrieval competition.
-    :param description: str, the information need
-    :param subtopics: list of str, the subtopics of the information need
-    :return:
-    """
+def get_comp_text(messages):
     max_tokens = config.max_tokens
     response = False
+    prompt_tokens = len(encoder.encode("".join([line['content'] for line in messages]))) + 200
+    while prompt_tokens + max_tokens > 4096:
+        max_tokens -= 50
+    print("max tokens for response:", max_tokens)
 
-    messages = get_messages(idx, epoch)
-    encode = encoder.encode(messages)
     while not response:
         try:
             response = openai.ChatCompletion.create(
@@ -91,7 +89,7 @@ def get_comp_text(idx, epoch=None):
                 messages=messages,
                 temperature=config.temperature,
                 top_p=config.top_p,
-                max_tokens=max_tokens + encoder.encode(messages),
+                max_tokens=max_tokens,
                 frequency_penalty=config.frequency_penalty,
                 presence_penalty=config.presence_penalty,
             )
@@ -100,7 +98,7 @@ def get_comp_text(idx, epoch=None):
             if word_no > 150:
                 max_tokens -= 50
                 response = False
-                print(f"word no: {word_no}, max tokens: {max_tokens}")
+                print(f"word no: {word_no}, max tokens: {max_tokens}.")
                 continue
             break
         except Exception as e:
@@ -110,5 +108,6 @@ def get_comp_text(idx, epoch=None):
 
 
 if __name__ == '__main__':
-    res = get_comp_text(193, epoch=4)['choices'][0]['message']['content']
+    messages = get_messages(193, epoch=4, bot_type="all", markov=False)
+    res = get_comp_text(messages)['choices'][0]['message']['content']
     x = 1
