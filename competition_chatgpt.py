@@ -47,14 +47,14 @@ def get_messages(idx: int, epoch=None, bot_type="all", markov=False):
             epoch_data = config.comp_data[
                 (config.comp_data.query_id == idx) & (config.comp_data.round_number == i)].sort_values('POS',
                                                                                                        ascending=True)
-            bot_data = epoch_data[epoch_data.author_id == config.names[bot_type]].reset_index()
+            bot_data = epoch_data[epoch_data.author_id == config.get_names_dict(markov)[bot_type]].reset_index()
             messages.append({"role": "assistant", "content": f"{bot_data['TEXT'][0]}"})
             messages.append({"role": "system", "content": f"You were ranked {bot_data['POS'][0]} in this epoch"})
 
             if bot_type == "all":
                 txt_rnk_lst = []
                 for _, row in epoch_data.iterrows():
-                    if row['author_id'] == config.names[bot_type]: continue
+                    if row['author_id'] == config.get_names_dict(markov)[bot_type]: continue
                     txt_rnk_lst.append(f"ranked {row['POS']}: {row['TEXT']}\n\n")
                 txt_rnk = "".join(txt_rnk_lst)
 
@@ -107,7 +107,7 @@ def get_comp_text(messages):
     return response
 
 
-if __name__ == '__main__':
-    messages = get_messages(193, epoch=4, bot_type="all", markov=False)
-    res = get_comp_text(messages)['choices'][0]['message']['content']
-    x = 1
+# if __name__ == '__main__':
+#     messages = get_messages(193, epoch=4, bot_type="all", markov=False)
+#     res = get_comp_text(messages)['choices'][0]['message']['content']
+#     x = 1

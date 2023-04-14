@@ -4,7 +4,11 @@ import openai
 import pandas as pd
 
 #### bot names ####
-names = {"all": "BOT", "tops": "TBOT", "self": "SBOT"}
+def get_names_dict(markov=False):
+    if markov:
+        return {"all": "MABOT", "tops": "MTBOT", "self": "MSBOT"}
+    else:
+        return {"all": "NMABOT", "tops": "NMTBOT", "self": "NMSBOT"}
 
 #### visualization parameters ####
 data_exist = {"comp": True, "improvements": True, "tops": True}
@@ -48,8 +52,9 @@ presence_penalty = 2.0
 # topic_codex_new = json.load(open("topic_queries_doc.json", "r"))
 topic_codex = dict()
 
+# TODO: change to actual copetition data when starting
 comp_data = pd.read_csv("comp_dataset.csv")
-x=1
+
 
 
 
