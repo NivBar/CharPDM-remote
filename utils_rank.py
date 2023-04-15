@@ -69,7 +69,8 @@ def decode_docno(docno: str):
     :param docno: document ID
     :return: round number, query ID and author ID
     """
-    round_number, query_id, author_id = docno.split('-')[1:]
+
+    round_number, query_id, author_id = docno.split('-')[1:4]
     return round_number, query_id, author_id
 
 

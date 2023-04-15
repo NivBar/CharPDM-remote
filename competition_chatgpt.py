@@ -48,7 +48,8 @@ def get_messages(idx: int, epoch=1, bot_type="all", markov=False):
          "content": fr"The competition involves {len(topic_info['queries'])} queries: " + ",".join(
              topic_info['queries'])},
         {"role": "system",
-         "content": "The goal is to have your document be ranked 1st (first) and win in the ranking done by a black box ranker."},
+         "content": "The goal is to have your document be ranked 1st (first) and win in the ranking done by a black "
+                    "box ranker in every single epoch."},
         {"role": "system", "content": fr"All contestants got an initial reference text: '{topic_info['doc']}'."},
         {"role": "user",
          "content": "Generate a single text that addresses the information need for all queries."},
@@ -64,7 +65,8 @@ def get_messages(idx: int, epoch=1, bot_type="all", markov=False):
             curr_text = texts.pop(bot_name)
 
             messages.append({"role": "assistant", "content": f"{curr_text}"})
-            messages.append({"role": "system", "content": f"You were ranked {curr_rank}{rank_suff(curr_rank)} in this epoch"})
+            messages.append(
+                {"role": "system", "content": f"You were ranked {curr_rank}{rank_suff(curr_rank)} in this epoch"})
 
             if bot_type == "all":
                 txt_rnk = str(
@@ -72,15 +74,22 @@ def get_messages(idx: int, epoch=1, bot_type="all", markov=False):
                     "\'", "").replace("\"", "")
                 messages.append(
                     {"role": "system",
-                     "content": f"The documents of your opponents in this epoch are as follows:\n {txt_rnk}"})
+                     "content": f"The ranked documents of your opponents in this epoch are as follows:\n {txt_rnk}"})
+                messages.append({"role": "user",
+                                 "content": "Generate a single text that addresses the information need for "
+                                            "all queries."})
 
             elif bot_type == "tops":
                 messages.append(
-                    {"role": "system", "content": f"The document ranked 1 in this epoch is: {top_text}"})
+                    {"role": "system", "content": f"The document ranked 1 in this epoch was: {top_text}"})
+                messages.append({"role": "user",
+                                 "content": "Generate a single text that addresses the information need for "
+                                            "all queries."})
 
             elif bot_type == "self":
                 messages.append({"role": "user",
-                                 "content": "Generate a single text that addresses the information need for all queries."})
+                                 "content": "Generate a single text that addresses the information need for "
+                                            "all queries."})
     return messages
 
 
@@ -108,7 +117,7 @@ def get_comp_text(messages):
             if word_no > 150:
                 max_tokens -= 50
                 response = False
-                print(f"word no: {word_no}, max tokens: {max_tokens}.")
+                print(f"word no was: {word_no}, dropping max tokens to: {max_tokens}.")
                 continue
             break
         except Exception as e:

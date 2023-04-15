@@ -84,13 +84,9 @@ def gen_fine_tune_prompt(feature_text, query):
 
 
 def get_id_text_pairs(id_, epoch="last"):
-    df = config.comp_data
-    if epoch == "last":
-        pairs = df[(df.round_number == max(list(df.round_number))) & (df.query_id == id_)][
-            ["author_id", "TEXT"]].values.tolist()
-    else:
-        pairs = df[(df.round_number == epoch) & (df.query_id == id_)][
-            ["author_id", "TEXT"]].values.tolist()
-
+    if epoch == 'last': epoch = max(list(config.comp_data.round_number))
+    df = config.comp_data[(config.comp_data.query_id == id_) & (config.comp_data.round_number == epoch)][
+        ["author_id", "TEXT"]]
+    pairs = df.values.tolist()
     pair_dict = {p[0]: p[1] for p in pairs}
     return pair_dict
