@@ -1,11 +1,23 @@
 import openai
 import config
 import tiktoken
+import json
 
 encoder = tiktoken.encoding_for_model(config.model)
 
 
-def get_messages(idx: int, epoch=None, bot_type="all", markov=False):
+def rank_suff(loc):
+    if loc == 1:
+        return ("st")
+    elif loc == 2:
+        return ("nd")
+    elif loc == 3:
+        return ("rd")
+    else:
+        return ("th")
+
+
+def get_messages(idx: int, epoch=1, bot_type="all", markov=False):
     """
     craft prompt messages list for the bot according to its type
     :param idx: topic index
@@ -17,7 +29,7 @@ def get_messages(idx: int, epoch=None, bot_type="all", markov=False):
     :return: list of messages comprising the prompt
     """
     assert type(idx) == int
-    assert epoch is None or type(epoch) == int
+    assert type(epoch) == int
     assert bot_type in ["all", "tops", "self"]
     assert type(markov) == bool
 
@@ -28,6 +40,7 @@ def get_messages(idx: int, epoch=None, bot_type="all", markov=False):
     rel = config.comp_data[config.comp_data.query_id == idx].head(1)
     topic_info['queries'] = [rel["query"][0]]
     topic_info['doc'] = rel['TEXT'][0]
+    bot_name = config.get_names_dict(markov)[bot_type]
 
     messages = [
         {"role": "system", "content": f"You are a contestant in an information retrieval SEO competition."},
@@ -35,42 +48,39 @@ def get_messages(idx: int, epoch=None, bot_type="all", markov=False):
          "content": fr"The competition involves {len(topic_info['queries'])} queries: " + ",".join(
              topic_info['queries'])},
         {"role": "system",
-         "content": "The goal is to have your document be ranked 1 (first) and win in the ranking done by a black box ranker."},
-        {"role": "system", "content": "You can only generate texts of 150 words maximum."},
-        {"role": "system", "content": fr"All contestants got an initial reference text: {topic_info['doc']}."},
+         "content": "The goal is to have your document be ranked 1st (first) and win in the ranking done by a black box ranker."},
+        {"role": "system", "content": fr"All contestants got an initial reference text: '{topic_info['doc']}'."},
         {"role": "user",
          "content": "Generate a single text that addresses the information need for all queries."},
     ]
-    if epoch is not None:
-        min_ = epoch if markov else 1
-        for i in range(min_, epoch + 1):
-            epoch_data = config.comp_data[
-                (config.comp_data.query_id == idx) & (config.comp_data.round_number == i)].sort_values('POS',
-                                                                                                       ascending=True)
-            bot_data = epoch_data[epoch_data.author_id == config.get_names_dict(markov)[bot_type]].reset_index()
-            messages.append({"role": "assistant", "content": f"{bot_data['TEXT'][0]}"})
-            messages.append({"role": "system", "content": f"You were ranked {bot_data['POS'][0]} in this epoch"})
+    if epoch != 1:
+        min_ = epoch - 1 if markov else 1
+        for i in range(min_, epoch):
+            rankings = json.load(open(f'./epoch_data/{bot_name}/id_{idx}_ep_{i}_{bot_name}_rankings.json'))
+            top_user = [x for x in rankings.keys() if rankings[x] == 1][0]
+            curr_rank = rankings.pop(bot_name)
+            texts = json.load(open(f'./epoch_data/{bot_name}/id_{idx}_ep_{i}_{bot_name}_texts.json'))
+            top_text = texts[top_user]
+            curr_text = texts.pop(bot_name)
+
+            messages.append({"role": "assistant", "content": f"{curr_text}"})
+            messages.append({"role": "system", "content": f"You were ranked {curr_rank}{rank_suff(curr_rank)} in this epoch"})
 
             if bot_type == "all":
-                txt_rnk_lst = []
-                for _, row in epoch_data.iterrows():
-                    if row['author_id'] == config.get_names_dict(markov)[bot_type]: continue
-                    txt_rnk_lst.append(f"ranked {row['POS']}: {row['TEXT']}\n\n")
-                txt_rnk = "".join(txt_rnk_lst)
-
+                txt_rnk = str(
+                    {f"ranked {obj[0]}": f"{obj[1]}\n\n" for obj in zip(rankings.values(), texts.values())}).replace(
+                    "\'", "").replace("\"", "")
                 messages.append(
                     {"role": "system",
                      "content": f"The documents of your opponents in this epoch are as follows:\n {txt_rnk}"})
+
             elif bot_type == "tops":
-                top_data = epoch_data[epoch_data.POS == 1].reset_index()
                 messages.append(
-                    {"role": "system", "content": f"The document ranked 1 in this epoch is: {top_data['TEXT'][0]}"})
+                    {"role": "system", "content": f"The document ranked 1 in this epoch is: {top_text}"})
+
             elif bot_type == "self":
-                pass
-            messages.append(
-                {"role": "user",
-                 "content": "Generate a single text that addresses the information need for all queries."})
-    print(messages)
+                messages.append({"role": "user",
+                                 "content": "Generate a single text that addresses the information need for all queries."})
     return messages
 
 
@@ -80,7 +90,7 @@ def get_comp_text(messages):
     prompt_tokens = len(encoder.encode("".join([line['content'] for line in messages]))) + 200
     while prompt_tokens + max_tokens > 4096:
         max_tokens -= 50
-    print("max tokens for response:", max_tokens)
+        print("Changed max tokens for response to:", max_tokens)
 
     while not response:
         try:
@@ -105,7 +115,6 @@ def get_comp_text(messages):
             print(e)
             continue
     return response
-
 
 # if __name__ == '__main__':
 #     messages = get_messages(193, epoch=4, bot_type="all", markov=False)

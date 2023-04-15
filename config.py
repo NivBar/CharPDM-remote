@@ -2,6 +2,8 @@ import json
 
 import openai
 import pandas as pd
+from API_key import API_key
+
 
 #### bot names ####
 def get_names_dict(markov=False):
@@ -10,12 +12,13 @@ def get_names_dict(markov=False):
     else:
         return {"all": "NMABOT", "tops": "NMTBOT", "self": "NMSBOT"}
 
+
 #### visualization parameters ####
 data_exist = {"comp": True, "improvements": True, "tops": True}
 display_graphs = False
 
 #### openai parameters ####
-openai.api_key = "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"
+openai.api_key = API_key
 
 """
 Model: Determines the architecture and parameters of the language model used for text generation. Different models have 
@@ -55,6 +58,5 @@ topic_codex = dict()
 # TODO: change to actual copetition data when starting
 comp_data = pd.read_csv("comp_dataset.csv")
 
-
-
+query_index = {x[0]: x[1] for x in comp_data[["query_id", "query"]].drop_duplicates().values.tolist()}
 
